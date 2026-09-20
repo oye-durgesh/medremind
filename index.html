@@ -800,32 +800,33 @@
       return hour12 + ':' + m + ' ' + ampm;
     }
 
-    function checkReminders() {
+    let shownReminders = new Set();
+
+    setInterval(() => {
       const now = new Date();
-      const currentTime = now.getHours().toString().padStart(2, '0') + ':' +
-                          now.getMinutes().toString().padStart(2, '0');
-      const list = getMedList();
+      const hh = now.getHours().toString().padStart(2, '0');
+      const mm = now.getMinutes().toString().padStart(2, '0');
+      const currentTime = hh + ':' + mm;
+      const today = new Date().toISOString().split('T')[0];
+
+      const list = JSON.parse(localStorage.getItem('medremind_list') || '[]');
 
       for (const med of list) {
-        if (med.time === currentTime &&
-            med.status === 'pending' &&
-            med.date === getToday() &&
-            !med.shownToday) {
+        const key = med.id + '_' + today;
+        if (
+          med.time === currentTime &&
+          med.status === 'pending' &&
+          !shownReminders.has(key)
+        ) {
+          shownReminders.add(key);
           currentMed = med.name;
           currentMedId = med.id;
-          addLog('⚡ Reminder triggered by Make.com scheduler — ' + med.name);
+          addLog('⚡ Reminder triggered — ' + med.name + ' at ' + currentTime);
           showCallScreen(med.name);
-
-          const updated = getMedList().map(m =>
-            m.id === med.id ? { ...m, shownToday: true } : m
-          );
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           break;
         }
       }
-    }
-
-    setInterval(checkReminders, 30000);
+    }, 5000);
 
     function showCallScreen(medName) {
       document.getElementById('call-med-name').textContent = medName;
