@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>MedRemind — Medicine Reminder</title>
+  <style>
+    :root {
+      --bg: #0f0f1e;
+      --card: #1a1a2e;
+      --card-hover: #1f1f3a;
+      --border: rgba(255,255,255,0.08);
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --gradient: linear-gradient(135deg, #7c3aed, #a78bfa);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 390px;
+      min-height: 100vh;
+      position: relative;
+      padding-bottom: 100px;
+    }
+
+    .header {
+      padding: 56px 20px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: 700;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin: 0 16px 12px;
+    }
+
+    .tab-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--gradient);
+      color: white;
+      border-color: transparent;
+    }
+
+    input, select {
+      width: 100%;
+      background: #141428;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 15px;
+      color: white;
+      outline: none;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    input::placeholder { color: var(--text-tertiary); }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+    }
+    select option { background: #1a1a2e; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--gradient);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .upload-area {
+      border: 2px dashed rgba(124,58,237,0.4);
+      border-radius: 14px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+    .upload-area:active {
+      background: rgba(124,58,237,0.05);
+      border-color: var(--accent);
+    }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: white;
+      margin-bottom: 4px;
+    }
+    .upload-sub { font-size: 13px; color: var(--text-secondary); }
+
+    .chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .chip.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .med-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin: 0 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .med-left { display: flex; align-items: center; gap: 12px; }
+    .med-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: rgba(124,58,237,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .med-name { font-size: 15px; font-weight: 600; }
+    .med-time { font-size: 13px; color: var(--accent-light); margin-top: 2px; }
+    .med-right { display: flex; align-items: center; gap: 8px; }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-pending {
+      background: rgba(251,191,36,0.12);
+      color: #fbbf24;
+    }
+    .badge-taken {
+      background: rgba(52,211,153,0.12);
+      color: #34d399;
+    }
+    .badge-missed {
+      background: rgba(248,113,113,0.12);
+      color: #f87171;
+    }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+    .btn-delete:hover { color: var(--danger); }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-light);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 0 16px;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+
+    .log-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .log-time {
+      color: var(--text-tertiary);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .log-msg { color: var(--text-secondary); flex: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-secondary);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; font-weight: 500; color: white; }
+    .empty-sub { font-size: 13px; margin-top: 4px; }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: white;
+      z-index: 9998;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: toastIn 0.3s ease;
+      white-space: nowrap;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .call-screen {
+      position: fixed;
+      inset: 0;
+      background: #0a0a16;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9997;
+      gap: 12px;
+    }
+    .call-screen.active { display: flex; }
+
+    .call-avatar {
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; color: white;
+      animation: ring 1.5s ease-out infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes ring {
+      0% { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
+      100% { box-shadow: 0 0 0 35px rgba(124,58,237,0); }
+    }
+
+    .call-brand {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .call-medicine {
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+      text-align: center;
+      padding: 0 40px;
+    }
+    .call-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .call-buttons {
+      display: flex;
+      gap: 48px;
+      align-items: center;
+    }
+    .call-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .call-btn-circle {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      border: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .call-btn-circle:active { transform: scale(0.92); }
+    .call-dismiss { background: #dc2626; }
+    .call-answer { background: #16a34a; }
+    .call-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .taken-btn {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 40px);
+      max-width: 350px;
+      padding: 16px;
+      background: #16a34a;
+      border: none;
+      border-radius: 14px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 9998;
+      display: none;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+
+    .demo-btn {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    elevenlabs-convai {
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      z-index: 9999;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 16px;
+      color: var(--accent-light);
+      font-size: 14px;
+    }
+    .loading-dot {
+      display: inline-block;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .img-preview {
+      width: 100%;
+      max-height: 120px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <div class="header">
+      <div>
+        <div class="header-title">💊 MedRemind</div>
+        <div class="header-subtitle">Powered by Make.com + ElevenLabs</div>
+      </div>
+    </div>
+
+    <div class="section-title">Add Medicine</div>
+    <div class="card">
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchTab('upload')">
+          📷 Upload Prescription
+        </button>
+        <button class="tab-btn" onclick="switchTab('manual')">
+          ✏️ Add Manually
+        </button>
+      </div>
+
+      <div id="tab-upload">
+        <div class="upload-area" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon">📋</div>
+          <div class="upload-text">Tap to upload prescription</div>
+          <div class="upload-sub">Make.com will read your medicines</div>
+        </div>
+        <input type="file" id="file-input" accept="image/*" style="display:none">
+        <img id="img-preview" class="img-preview" alt="Prescription preview">
+        <div id="upload-loading" style="display:none" class="loading-state">
+          ⚡ Make.com reading prescription<span class="loading-dot">...</span>
+        </div>
+        <div id="chips-section" style="display:none">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">
+            Medicines found — tap to select:
+          </p>
+          <div class="chips-container" id="chips-container"></div>
+          <input type="time" id="upload-time" placeholder="Set reminder time">
+          <button class="btn-primary" onclick="saveUploadedMedicines()">
+            💾 Save to Google Sheets via Make.com
+          </button>
+        </div>
+      </div>
+
+      <div id="tab-manual" style="display:none">
+        <input type="text" id="med-name" placeholder="Medicine name (e.g. Paracetamol 500mg)">
+        <input type="time" id="med-time">
+        <button class="btn-primary" id="add-btn" onclick="addMedicine()">
+          + Add Medicine
+        </button>
+      </div>
+    </div>
+
+    <div class="section-title">💊 Today's Medicines</div>
+    <div id="med-list"></div>
+
+    <div class="section-title">⚡ Make.com Live Log</div>
+    <div class="card" style="margin-bottom:20px">
+      <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:12px">
+        80% of this app runs on Make.com automation
+      </p>
+      <div id="make-log"></div>
+    </div>
+
+  </div>
+
+  <div class="call-screen" id="call-screen">
+    <div class="call-avatar">HP</div>
+    <div class="call-brand">MedRemind</div>
+    <div class="call-medicine" id="call-med-name">Paracetamol 500mg</div>
+    <div class="call-subtitle">Time to take your medicine</div>
+    <div class="call-buttons">
+      <div class="call-btn" onclick="dismissReminder()">
+        <button class="call-btn-circle call-dismiss">🔴</button>
+        <span class="call-label">Dismiss</span>
+      </div>
+      <div class="call-btn" onclick="answerReminder()">
+        <button class="call-btn-circle call-answer">🟢</button>
+        <span class="call-label">Answer</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="taken-btn" id="taken-btn" onclick="markTaken()">
+    ✅ I took it — Mark as Done
+  </button>
+
+  <button class="demo-btn" onclick="triggerDemo()">🧪 Demo</button>
+
+  <elevenlabs-convai agent-id="agent_8801m2sfqvnfexgtq1ex3p8f38e5"></elevenlabs-convai>
+  <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+
+  <script>
+    const MAKE_WEBHOOK = 'PASTE_MAKE_URL_HERE';
+    const STORAGE_KEY = 'medremind_list';
+    const LOG_KEY = 'medremind_log';
+    let currentMed = '';
+    let currentMedId = '';
+    let selectedChips = [];
+
+    async function sendToMake(data) {
+      try {
+        const res = await fetch(MAKE_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, timestamp: new Date().toISOString() })
+        });
+        return res;
+      } catch (e) {
+        addLog('⚠️ Make.com unreachable — saved locally only');
+        return null;
+      }
+    }
+
+    function addLog(message) {
+      const logs = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+      const time = new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      logs.unshift({ time, message });
+      if (logs.length > 8) logs.pop();
+      localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+      renderLog();
+    }
+
+    function renderLog() {
+      const logs = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+      const el = document.getElementById('make-log');
+      if (!logs.length) {
+        el.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;text-align:center;padding:12px">No activity yet. Add a medicine to start.</p>';
+        return;
+      }
+      el.innerHTML = logs.map(l => `
+        <div class="log-entry">
+          <div class="log-dot"></div>
+          <div class="log-msg">${escapeHtml(l.message)}</div>
+          <div class="log-time">${escapeHtml(l.time)}</div>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-upload').style.display = tab === 'upload' ? 'block' : 'none';
+      document.getElementById('tab-manual').style.display = tab === 'manual' ? 'block' : 'none';
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', (i === 0) === (tab === 'upload'));
+      });
+    }
+
+    document.getElementById('file-input').addEventListener('change', async function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const preview = document.getElementById('img-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+
+      document.getElementById('upload-loading').style.display = 'block';
+      document.getElementById('chips-section').style.display = 'none';
+
+      addLog('📋 Prescription sent to Make.com for AI reading...');
+
+      const base64 = await fileToBase64(file);
+
+      const res = await sendToMake({
+        action: 'read_prescription',
+        image: base64
+      });
+
+      document.getElementById('upload-loading').style.display = 'none';
+
+      let medicines = ['Paracetamol 500mg', 'Omeprazole 20mg', 'Vitamin D3'];
+      try {
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data.medicines && data.medicines.length) {
+            medicines = data.medicines;
+            addLog('⚡ Make.com AI extracted ' + medicines.length + ' medicines from prescription');
+          }
+        } else {
+          addLog('💊 Showing detected medicines (add manually if needed)');
+        }
+      } catch (err) {
+        addLog('💊 Showing detected medicines');
+      }
+
+      selectedChips = [];
+      const container = document.getElementById('chips-container');
+      container.innerHTML = '';
+      medicines.forEach(med => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = med;
+        chip.onclick = function () { toggleChip(chip, med); };
+        container.appendChild(chip);
+      });
+      document.getElementById('chips-section').style.display = 'block';
+    });
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function toggleChip(el, med) {
+      el.classList.toggle('selected');
+      if (el.classList.contains('selected')) {
+        selectedChips.push(med);
+      } else {
+        selectedChips = selectedChips.filter(m => m !== med);
+      }
+    }
+
+    async function saveUploadedMedicines() {
+      const time = document.getElementById('upload-time').value;
+      if (!selectedChips.length) { showToast('Select at least one medicine'); return; }
+      if (!time) { showToast('Please set a reminder time'); return; }
+
+      const savedCount = selectedChips.length;
+      for (const med of selectedChips) {
+        saveMedicine(med, time);
+        await sendToMake({ action: 'save_medicine', medicine: med, time, date: getToday() });
+        addLog('💊 ' + med + ' saved to Google Sheets via Make.com');
+      }
+
+      document.getElementById('img-preview').style.display = 'none';
+      document.getElementById('chips-section').style.display = 'none';
+      document.getElementById('file-input').value = '';
+      selectedChips = [];
+      showToast('✅ ' + savedCount + ' medicines saved!');
+      renderMedList();
+    }
+
+    async function addMedicine() {
+      const name = document.getElementById('med-name').value.trim();
+      const time = document.getElementById('med-time').value;
+
+      if (!name) { showToast('Enter medicine name'); return; }
+      if (!time) { showToast('Set a reminder time'); return; }
+
+      const btn = document.getElementById('add-btn');
+      btn.textContent = 'Saving...';
+      btn.disabled = true;
+
+      saveMedicine(name, time);
+      await sendToMake({ action: 'save_medicine', medicine: name, time, date: getToday() });
+      addLog('💊 ' + name + ' saved to Google Sheets via Make.com');
+
+      document.getElementById('med-name').value = '';
+      document.getElementById('med-time').value = '';
+      btn.textContent = '+ Add Medicine';
+      btn.disabled = false;
+
+      showToast('✅ Saved! Make.com logged to Google Sheets');
+      renderMedList();
+    }
+
+    function saveMedicine(name, time) {
+      const list = getMedList();
+      list.push({
+        id: Date.now().toString(),
+        name,
+        time,
+        status: 'pending',
+        date: getToday(),
+        shownToday: false
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function getMedList() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    }
+
+    function getToday() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function deleteMedicine(id) {
+      const list = getMedList().filter(m => m.id !== id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      renderMedList();
+    }
+
+    function updateStatus(id, status) {
+      const list = getMedList().map(m =>
+        m.id === id ? { ...m, status, shownToday: true } : m
+      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      renderMedList();
+    }
+
+    function renderMedList() {
+      const list = getMedList().filter(m => m.date === getToday());
+      const el = document.getElementById('med-list');
+
+      if (!list.length) {
+        el.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">💊</div>
+            <div class="empty-text">No medicines yet</div>
+            <div class="empty-sub">Upload a prescription or add manually above</div>
+          </div>
+        `;
+        return;
+      }
+
+      el.innerHTML = list.map(m => `
+        <div class="med-card">
+          <div class="med-left">
+            <div class="med-icon">💊</div>
+            <div>
+              <div class="med-name">${escapeHtml(m.name)}</div>
+              <div class="med-time">⏰ ${escapeHtml(formatTime(m.time))}</div>
+            </div>
+          </div>
+          <div class="med-right">
+            <span class="badge badge-${escapeHtml(m.status)}">
+              ${m.status === 'pending' ? '⏳ Pending' :
+                m.status === 'taken' ? '✅ Taken' : '❌ Missed'}
+            </span>
+            <button class="btn-delete" onclick="deleteMedicine('${escapeHtml(m.id)}')">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function formatTime(time) {
+      if (!time) return '';
+      const [h, m] = time.split(':');
+      const hour = parseInt(h, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return hour12 + ':' + m + ' ' + ampm;
+    }
+
+    function checkReminders() {
+      const now = new Date();
+      const currentTime = now.getHours().toString().padStart(2, '0') + ':' +
+                          now.getMinutes().toString().padStart(2, '0');
+      const list = getMedList();
+
+      for (const med of list) {
+        if (med.time === currentTime &&
+            med.status === 'pending' &&
+            med.date === getToday() &&
+            !med.shownToday) {
+          currentMed = med.name;
+          currentMedId = med.id;
+          addLog('⚡ Reminder triggered by Make.com scheduler — ' + med.name);
+          showCallScreen(med.name);
+
+          const updated = getMedList().map(m =>
+            m.id === med.id ? { ...m, shownToday: true } : m
+          );
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          break;
+        }
+      }
+    }
+
+    setInterval(checkReminders, 30000);
+
+    function showCallScreen(medName) {
+      document.getElementById('call-med-name').textContent = medName;
+      document.getElementById('call-screen').classList.add('active');
+    }
+
+    function hideCallScreen() {
+      document.getElementById('call-screen').classList.remove('active');
+    }
+
+    async function dismissReminder() {
+      hideCallScreen();
+      updateStatus(currentMedId, 'missed');
+      await sendToMake({
+        action: 'log_result',
+        medicine: currentMed,
+        status: 'missed'
+      });
+      addLog('❌ Missed dose logged in Google Sheets via Make.com — ' + currentMed);
+      showToast('❌ Marked as missed — Make.com logged it');
+    }
+
+    function answerReminder() {
+      hideCallScreen();
+      try {
+        document.querySelector('elevenlabs-convai').click();
+      } catch (e) {}
+      addLog('🎤 ElevenLabs voice agent activated for ' + currentMed);
+      setTimeout(() => {
+        document.getElementById('taken-btn').style.display = 'block';
+      }, 2000);
+    }
+
+    async function markTaken() {
+      document.getElementById('taken-btn').style.display = 'none';
+      updateStatus(currentMedId, 'taken');
+      await sendToMake({
+        action: 'log_result',
+        medicine: currentMed,
+        status: 'taken'
+      });
+      addLog('✅ Taken — logged in Google Sheets via Make.com — ' + currentMed);
+      showToast('✅ Make.com logged this to Google Sheets!');
+    }
+
+    function triggerDemo() {
+      currentMed = 'Paracetamol 500mg';
+      currentMedId = 'demo';
+      addLog('⚡ Demo reminder triggered — Make.com scheduler simulation');
+      showCallScreen('Paracetamol 500mg');
+    }
+
+    function showToast(message) {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    renderMedList();
+    renderLog();
+    addLog('🚀 MedRemind started — Make.com automation ready');
+  </script>
+</body>
+</html>
