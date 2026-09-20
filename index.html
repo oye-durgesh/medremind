@@ -926,6 +926,14 @@
             btn.textContent = '🎤 Tap to Talk';
             btn.disabled = false;
             addLog('🎤 Voice agent disconnected');
+
+            sendToMake({
+              action: 'log_voice',
+              medicine: currentMed,
+              voice_confirmed: true,
+              timestamp: new Date().toISOString()
+            });
+            addLog('⚡ Voice confirmation logged in Google Sheets via Make.com');
           },
           onError: (error) => {
             console.error(error);
