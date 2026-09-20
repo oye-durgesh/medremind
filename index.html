@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>MedRemind — Medicine Reminder</title>
+  <script src="https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.1.6/dist/lib.umd.js"></script>
   <style>
     :root {
       --bg: #0f0f1e;
@@ -581,8 +582,6 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
-
   <button id="taken-btn" class="taken-btn" onclick="markTaken()"
     style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:350px;padding:16px;background:#16a34a;border:none;border-radius:14px;color:white;font-size:16px;font-weight:600;cursor:pointer;z-index:10001;">
     ✅ I took it — Mark as Done
@@ -591,8 +590,6 @@
   <button class="demo-btn" type="button" onclick="triggerDemo()">🧪 Demo</button>
 
   <script>
-    const ELEVEN_API_KEY = '5bbb00a5d339a3b58ee23dee6ea5c33069fd2caf1fa4be1993fc7dad5e334a26';
-    const ELEVEN_AGENT_ID = 'agent_8801m2sfqvnfexgtq1ex3p8f38e5';
     const MAKE_WEBHOOK = 'https://hook.eu1.make.com/oycywvgpxmsddf7sfqv949xw0byp2gxl';
     const STORAGE_KEY = 'medremind_list';
     const LOG_KEY = 'medremind_log';
@@ -918,43 +915,40 @@
       btn.disabled = true;
 
       try {
-        const res = await fetch(
-          'https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + ELEVEN_AGENT_ID,
-          {
-            method: 'GET',
-            headers: { 'xi-api-key': ELEVEN_API_KEY }
-          }
-        );
-
-        const data = await res.json();
-
-        if (data.signed_url) {
-          addLog('🎤 ElevenLabs connected — voice agent starting');
-          btn.textContent = '✅ Connected!';
-
-          const old = document.querySelector('elevenlabs-convai');
-          if (old) old.remove();
-
-          const widget = document.createElement('elevenlabs-convai');
-          widget.setAttribute('signed-url', data.signed_url);
-          widget.style.cssText = 'position:fixed;bottom:160px;left:50%;transform:translateX(-50%);z-index:9999;';
-          document.body.appendChild(widget);
-
-          setTimeout(() => {
-            if (widget.shadowRoot) {
-              const btn2 = widget.shadowRoot.querySelector('button');
-              if (btn2) btn2.click();
+        const Client = window.ElevenLabsClient || window.ElevenLabs || window.client;
+        const conversation = await Client.Conversation.startSession({
+          agentId: 'agent_8801m2sfqvnfexgtq1ex3p8f38e5',
+          onConnect: () => {
+            btn.textContent = '🎤 Speaking...';
+            addLog('🎤 ElevenLabs voice agent connected');
+          },
+          onDisconnect: () => {
+            btn.textContent = '🎤 Tap to Talk';
+            btn.disabled = false;
+            addLog('🎤 Voice agent disconnected');
+          },
+          onError: (error) => {
+            console.error(error);
+            btn.textContent = '❌ Tap to retry';
+            btn.disabled = false;
+            addLog('⚠️ Voice agent error');
+          },
+          onModeChange: ({ mode }) => {
+            if (mode === 'speaking') {
+              btn.textContent = '🔊 Agent Speaking...';
+            } else if (mode === 'listening') {
+              btn.textContent = '🎤 Listening...';
             }
-          }, 1500);
+          }
+        });
 
-        } else {
-          throw new Error('No signed URL');
-        }
+        window.currentConversation = conversation;
+
       } catch (e) {
         console.error(e);
-        addLog('⚠️ Voice connection failed — check API key');
-        btn.textContent = '❌ Failed — Tap to retry';
+        btn.textContent = '❌ Tap to retry';
         btn.disabled = false;
+        addLog('⚠️ Could not connect to voice agent');
       }
 
       setTimeout(() => {
@@ -963,6 +957,10 @@
     }
 
     async function markTaken() {
+      if (window.currentConversation) {
+        window.currentConversation.endSession();
+        window.currentConversation = null;
+      }
       document.getElementById('taken-btn').style.display = 'none';
       document.getElementById('voice-active-screen').style.display = 'none';
       if (currentMedId && currentMedId !== 'demo') {
