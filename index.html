@@ -547,7 +547,7 @@
       Tap the button below to connect to<br>your ElevenLabs voice agent
     </div>
 
-    <button id="tap-to-talk-btn" type="button" onclick="startElevenLabs()" style="
+    <button id="talk-btn" type="button" onclick="startElevenLabs()" style="
       background: linear-gradient(135deg, #7c3aed, #a78bfa);
       border: none;
       border-radius: 50px;
@@ -562,11 +562,6 @@
     <div style="font-size: 12px; color: #64748b;">
       Powered by ElevenLabs Voice AI
     </div>
-
-    <elevenlabs-convai
-      agent-id="agent_8801m2sfqvnfexgtq1ex3p8f38e5"
-      style="opacity:0;position:absolute;width:1px;height:1px;overflow:hidden;">
-    </elevenlabs-convai>
   </div>
 
   <div id="call-screen" class="call-screen" style="position:fixed;inset:0;background:#0a0a16;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10000;gap:16px;">
@@ -596,6 +591,8 @@
   <button class="demo-btn" type="button" onclick="triggerDemo()">🧪 Demo</button>
 
   <script>
+    const ELEVEN_API_KEY = '5bbb00a5d339a3b58ee23dee6ea5c33069fd2caf1fa4be1993fc7dad5e334a26';
+    const ELEVEN_AGENT_ID = 'agent_8801m2sfqvnfexgtq1ex3p8f38e5';
     const MAKE_WEBHOOK = 'https://hook.eu1.make.com/oycywvgpxmsddf7sfqv949xw0byp2gxl';
     const STORAGE_KEY = 'medremind_list';
     const LOG_KEY = 'medremind_log';
@@ -902,7 +899,7 @@
 
     function answerReminder() {
       hideCallScreen();
-      const talkBtn = document.getElementById('tap-to-talk-btn');
+      const talkBtn = document.getElementById('talk-btn');
       if (talkBtn) {
         talkBtn.textContent = '🎤 Tap to Talk';
         talkBtn.disabled = false;
@@ -915,37 +912,54 @@
       addLog('🎤 Tap to Talk to start ElevenLabs');
     }
 
-    function startElevenLabs() {
-      const widget = document.querySelector('elevenlabs-convai');
-      if (widget) {
-        try {
-          if (typeof widget.startConversation === 'function') {
-            widget.startConversation();
+    async function startElevenLabs() {
+      const btn = document.getElementById('talk-btn');
+      btn.textContent = '🔴 Connecting...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(
+          'https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + ELEVEN_AGENT_ID,
+          {
+            method: 'GET',
+            headers: { 'xi-api-key': ELEVEN_API_KEY }
           }
-        } catch (e) {}
+        );
 
-        const shadowRoot = widget.shadowRoot;
-        if (shadowRoot) {
-          const btn = shadowRoot.querySelector('button') || shadowRoot.querySelector('[role="button"]');
-          if (btn) btn.click();
-          else widget.click();
+        const data = await res.json();
+
+        if (data.signed_url) {
+          addLog('🎤 ElevenLabs connected — voice agent starting');
+          btn.textContent = '✅ Connected!';
+
+          const old = document.querySelector('elevenlabs-convai');
+          if (old) old.remove();
+
+          const widget = document.createElement('elevenlabs-convai');
+          widget.setAttribute('signed-url', data.signed_url);
+          widget.style.cssText = 'position:fixed;bottom:160px;left:50%;transform:translateX(-50%);z-index:9999;';
+          document.body.appendChild(widget);
+
+          setTimeout(() => {
+            if (widget.shadowRoot) {
+              const btn2 = widget.shadowRoot.querySelector('button');
+              if (btn2) btn2.click();
+            }
+          }, 1500);
+
         } else {
-          widget.click();
+          throw new Error('No signed URL');
         }
+      } catch (e) {
+        console.error(e);
+        addLog('⚠️ Voice connection failed — check API key');
+        btn.textContent = '❌ Failed — Tap to retry';
+        btn.disabled = false;
       }
 
-      const status = document.getElementById('voice-status');
-      if (status) {
-        status.innerHTML = 'ElevenLabs voice agent is active.<br>Speak now — say "Yes I took it" or "Not yet"';
-      }
-      const talkBtn = document.getElementById('tap-to-talk-btn');
-      if (talkBtn) {
-        talkBtn.textContent = '🎤 Listening...';
-        talkBtn.disabled = true;
-      }
-
-      addLog('🎤 ElevenLabs voice agent activated');
-      document.getElementById('taken-btn').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('taken-btn').style.display = 'block';
+      }, 3000);
     }
 
     async function markTaken() {
